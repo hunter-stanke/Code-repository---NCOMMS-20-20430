@@ -1,0 +1,64 @@
+## Model defintion used to quantify of species-level 
+## response (FSI) to forest disturbance severity and
+## probability as outlined in NCOMMS-20-20430.
+
+model {
+
+  ## Species-level -----------------------------------------
+
+  ## Loop over species
+  for (j in 1:J){
+
+    ## Alpha prior
+    alpha[j] ~ dnorm(0, pow(100, -2))
+
+    ## Priors on previous RD - values almost always between 0 and 1
+    rd[j] ~ dnorm(-0.6931472, pow(3, -2))
+
+    ## Beta, rate priors
+    for (k in 1:K){
+      beta[j,k] ~ dnorm(0, pow(100, -2))
+
+      ## priors for disturbance rates
+      psi[j,k] ~ dbeta(1,1)
+
+      ## Sensitivity is severity times frequency,
+      ## Units here are in FSI, or change in RD
+      ## So we can standardize by dividing by previous RD
+      sens[j,k] <- beta[j,k] * psi[j,k] / exp(rd[j])
+
+    }
+
+  }
+
+
+  ## Observation-level --------------------------------------
+
+  # Residual variance for linear regression relating
+  # the FSI to predictors in X
+  obs_resid_sigma ~  dunif(0,100)
+  obs_resid_tau <- pow(obs_resid_sigma, -2)
+
+  # Residual variance of the mean RD
+  rd_resid_sigma ~  dunif(0,100)
+  rd_resid_tau <- pow(rd_resid_sigma, -2)
+
+  # Likelihood of normally distributed response (FSI)
+  for (n in 1:N){
+    ## g[n] gives species ID assoicated with n
+    mu[n] <- alpha[g[n]] + inprod(X[n,], beta[g[n],])
+    y[n] ~ dnorm(mu[n], obs_resid_tau)
+
+    ## Likelihood of binary disturbance code
+    for (k in 1:K){
+      X[n,k] ~ dbin(psi[g[n], k], remper[n])
+    }
+
+    ## Likelihood of previous relative density
+    z[n] ~ dnorm(rd[g[n]], rd_resid_tau)
+  }
+
+}
+
+
+
