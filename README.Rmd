@@ -1,0 +1,147 @@
+---
+title: "Code availability and usage for NCOMMS-20-20430"
+author: "Hunter Stanke"
+date: "12/30/2020"
+output: github_document
+---
+<style>
+div.sourceCode {
+    overflow: hidden;
+}
+</style>
+
+
+<br>
+<br>
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+> This document serves as a description of contents in `FSI_code.zip` and a guide to reproducing results described in `NCOMMS-20-20430`. We describe all system requirements and installation guidelines required to install the publicly available `rFIA` R package, which contains most of the code necessary to reproduce our results (all remaining code available in `FSI_code.zip`). We provide a demonstration of our software (implemented in `rFIA`) as well as specific instructions for software use and replication of results. Contents of `FIA`, `PRISM`, and `results` directories within `FSI_code.zip` are empty initially. All required data will be downloaded and saved upon running `.R` scripts. 
+
+
+# System Requirements
+We have implemented methods to compute the Forest Stability Index (described in `NCOMMS-20-20430`) using publicly available USDA Forest Inventory and Analysis database in the open source R package, `rFIA`. Methods in the `rFIA` R package and other code used to produce the results outlined in `NCOMMS-20-20430` have been tested on Windows 10, Ubuntu 18.04, and R versions 3.5.1 and 4.0.0. For more on the rFIA R package, check out our [website](https://rfia.netlify.app/).
+
+**The data used to produce results outlined in `NCOMMS-20-20430` may be too large to be processed on a standard desktop computer (RAM limitations may prevent loading/processing in R). We recommend using a machine with at least 64GB of RAM to reproduce our results (all analysis presented in `NCOMMS-20-20430` were completed on a machine with 384GB of RAM).** We recognize that reviewers may not have access to these computational resources. In such event, we have provided an additional alternative workflow that uses a subset of the full dataset for demonstration and review purposes (see lines 51-54 of `estimate.R`).
+
+<br>
+
+
+# Installation
+
+Users can install the released version of `rFIA` from CRAN with:
+``` {r, eval=FALSE}
+install.packages('rFIA')
+```
+
+or the development version from GitHub with:
+
+``` {r, eval=FALSE}
+devtools::install_github('hunter-stanke/rFIA')
+```
+
+
+
+<br> 
+
+# Software demonstration
+As an example, we will implement the Forest Stability Index using USDA Forest Inventory and Analyis (FIA) data collected between 2001-2019 in the state of Colorado, USA. All code shown below can be run in R independent of the contents of `FSI_code.zip`. Processing time will vary with network speed as data must be downloaded from an online repository, however should not exceed 5 minutes on a normal desktop computer. All results will be returned as `data.frame` objects in R.
+
+We first download the FIA data for Colorado using `rFIA`:
+```{r, eval = FALSE}
+library(rFIA)
+library(dplyr)
+
+## Dowloading and loading into R
+co <- getFIA('CO')
+```
+
+```{r, echo = FALSE}
+library(rFIA)
+library(dplyr)
+
+## Dowloading and loading into R
+co <- readFIA('C:/Users/hstan/Dropbox/FIA/', states = 'CO')
+```
+
+We can then use the `fsi` function to estimate the Forest Stability Index for all forest in the state using the 'simple moving average' estimator. As done in `NCOMMS-20-20430`, we allow slopes and intercepts of maximum size density curves to vary by forest type using the `scaleBy` argument:
+```{r}
+## FSI for all forest
+fsi(co, 
+    method = 'sma',
+    scaleBy = FORTYPCD)
+```
+
+where `FSI` is the estimated Forest Stability Index for all forestland in CO by `YEAR`. `SI_STATUS` indicates the status of the population: decline if `FSI` is negative and confidence interval (`FSI_INT`) excludes zero; expand if `FSI` is positive and confidence interval excludes zero; stable otherwise. Estimates can be returned at the plot-level by specifying `byPlot = TRUE`:
+```{r}
+## FSI plot-level
+fsi(co, 
+    byPlot = TRUE,
+    scaleBy = FORTYPCD) %>%
+   ## Forested plots only
+   filter(PLOT_STATUS_CD == 1) %>%
+   filter(!is.na(PREV_PLT_CN))
+```
+
+
+We can group estimates by species by specifying `bySpecies = TRUE`:
+```{r}
+## FSI by species
+fsi(co, 
+    method = 'sma', 
+    bySpecies = TRUE,
+    scaleBy = FORTYPCD)
+```
+
+
+or by any other grouping variable contained in the `co` database using the `grpBy` argument:
+```{r}
+## Grouping by ownership class
+fsi(co, 
+    method = 'sma',
+    grpBy = OWNCD,
+    scaleBy = FORTYPCD)
+```
+
+
+
+
+# Instructions for use
+## _Applying the FSI to our study region _
+To apply the `FSI` to our study region (i.e., western US), we simply expand our population of interest to include Washington, Oregon, California, Idaho, Montana, Utah, Nevada, Arizona, New Mexico, and Colorado: 
+
+```{r eval=FALSE}
+## Download and load data for all states
+db <- getFIA(c('WA', 'OR', 'CA', 'NV', 'AZ',
+               'NM', 'CO', 'UT', 'MT', 'ID'))
+
+## Estimate the FSI by species across the full
+## study region (range-wide indices)
+rangeWide <- fsi(db, 
+                 method = 'sma',
+                 bySpecies = TRUE,
+                 scaleBy = FORTYPCD)
+```
+
+
+These data are large (~8GB), and download speeds will depend on a users network connection. Once downloaded, processing should not exceed 10 minutes. 
+
+
+_Reproduction of our results_
+
+To reproduce the results outlined in `NCOMMS-20-20430`, modify working directory in `estimate.R`, `climate.R`, and `model.R` to the location where `FSI_code` is unzipped. Then simply source the `.R` files listed at the root of the `FSI_code` directory with the following (must be run in this sequence): 
+
+```{r eval=FALSE}
+## Download data and estimate the FSI by 
+## populations of interest
+source('./FSI_code/estimate.R')
+
+
+## Run disturbance model
+source('./FSI_code/disturbMod.R')
+```
+
+
+The above will (1) download all FIA data required for the analysis, and save the data in the `FIA` directory. (2) Produce estimates of the FSI for populations of interest (i.e., species). Results will be stored in the `results` directory, with plot-level estimates found in `results/plt`, ecoregion-scale estimates found in `results/spatial` and range-wide estimates found in `results/regionWide`. Model results (estimated coefficients and associated credible intervals) will be stored in `results/model`.
+
