@@ -1,7 +1,4 @@
 ---
-title: "Code availability and usage for NCOMMS-20-20430"
-author: "Hunter Stanke"
-date: "12/30/2020"
 output: github_document
 ---
 <style>
@@ -17,7 +14,7 @@ div.sourceCode {
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```
 
-> This document serves as a description of contents in `FSI_code.zip` and a guide to reproducing results described in `NCOMMS-20-20430`. We describe all system requirements and installation guidelines required to install the publicly available `rFIA` R package, which contains most of the code necessary to reproduce our results (all remaining code available in `FSI_code.zip`). We provide a demonstration of our software (implemented in `rFIA`) as well as specific instructions for software use and replication of results. Contents of `FIA`, `PRISM`, and `results` directories within `FSI_code.zip` are empty initially. All required data will be downloaded and saved upon running `.R` scripts. 
+> This document serves as a description of contents in `FSI_code.zip` and a guide to reproducing results described in "Over half of western United States' most abundant tree species in decline" (Stanke et al., 2020; `NCOMMS-20-20430`). We describe all system requirements and installation guidelines required to install the publicly available `rFIA` R package, which contains most of the code necessary to reproduce our results (all remaining code available in `FSI_code.zip`). We provide a demonstration of our software (implemented in `rFIA`) as well as specific instructions for software use and replication of results. Contents of `FIA` and `results` directories within `FSI_code.zip` are empty initially. All required data will be downloaded and saved upon running `.R` scripts. 
 
 
 # System Requirements
@@ -100,7 +97,7 @@ or by any other grouping variable contained in the `co` database using the `grpB
 ## Grouping by ownership class
 fsi(co, 
     method = 'sma',
-    grpBy = OWNCD,
+    grpBy = OWNGRPCD,
     scaleBy = FORTYPCD)
 ```
 
@@ -108,7 +105,7 @@ fsi(co,
 
 
 # Instructions for use
-## _Applying the FSI to our study region _
+## _Applying the FSI to our study region_
 To apply the `FSI` to our study region (i.e., western US), we simply expand our population of interest to include Washington, Oregon, California, Idaho, Montana, Utah, Nevada, Arizona, New Mexico, and Colorado: 
 
 ```{r eval=FALSE}
@@ -128,7 +125,7 @@ rangeWide <- fsi(db,
 These data are large (~8GB), and download speeds will depend on a users network connection. Once downloaded, processing should not exceed 10 minutes. 
 
 
-_Reproduction of our results_
+_Reproducing of our results_
 
 To reproduce the results outlined in `NCOMMS-20-20430`, modify working directory in `estimate.R`, `climate.R`, and `model.R` to the location where `FSI_code` is unzipped. Then simply source the `.R` files listed at the root of the `FSI_code` directory with the following (must be run in this sequence): 
 
